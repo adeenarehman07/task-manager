@@ -1,0 +1,95 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>Task Manager</title>
+  <style>
+    * { box-sizing: border-box; }
+    body { font-family: Arial, sans-serif; background: #f4f6f8; margin: 0; padding: 20px; }
+    .app { max-width: 480px; margin: 40px auto; background: #fff; padding: 24px; border-radius: 12px; box-shadow: 0 2px 10px rgba(0,0,0,.1); }
+    h1 { margin-top: 0; }
+    form { display: flex; gap: 8px; }
+    input[type=text] { flex: 1; padding: 10px; border: 1px solid #ccc; border-radius: 6px; }
+    button { padding: 10px 14px; border: 0; border-radius: 6px; background: #2563eb; color: #fff; cursor: pointer; }
+    .filters { margin: 16px 0; display: flex; gap: 8px; }
+    .filters button { background: #e5e7eb; color: #111; }
+    .filters button.active { background: #2563eb; color: #fff; }
+    ul { list-style: none; padding: 0; }
+    li { display: flex; align-items: center; gap: 10px; padding: 10px 0; border-bottom: 1px solid #eee; }
+    li span { flex: 1; }
+    li.done span { text-decoration: line-through; color: #888; }
+    li .del { background: #dc2626; padding: 6px 10px; }
+    #count { color: #666; font-size: 14px; }
+  </style>
+</head>
+<body>
+  <div class="app">
+    <h1>Task Manager</h1>
+    <form id="form">
+      <input type="text" id="input" placeholder="Add a new task..." required>
+      <button type="submit">Add</button>
+    </form>
+    <div class="filters">
+      <button data-filter="all" class="active">All</button>
+      <button data-filter="active">Active</button>
+      <button data-filter="done">Done</button>
+    </div>
+    <ul id="list"></ul>
+    <p id="count"></p>
+  </div>
+  <script>
+    let tasks = JSON.parse(localStorage.getItem('tasks') || '[]');
+    let filter = 'all';
+    const list = document.getElementById('list');
+    const count = document.getElementById('count');
+
+    function save() { localStorage.setItem('tasks', JSON.stringify(tasks)); }
+
+    function render() {
+      list.innerHTML = '';
+      const visible = tasks.filter(t =>
+        filter === 'all' || (filter === 'done' ? t.done : !t.done));
+      visible.forEach(t => {
+        const li = document.createElement('li');
+        if (t.done) li.classList.add('done');
+        const box = document.createElement('input');
+        box.type = 'checkbox';
+        box.checked = t.done;
+        box.onchange = () => { t.done = box.checked; save(); render(); };
+        const span = document.createElement('span');
+        span.textContent = t.text;
+        const del = document.createElement('button');
+        del.textContent = 'Delete';
+        del.className = 'del';
+        del.onclick = () => { tasks = tasks.filter(x => x.id !== t.id); save(); render(); };
+        li.append(box, span, del);
+        list.appendChild(li);
+      });
+      count.textContent = tasks.filter(t => !t.done).length + ' tasks left';
+    }
+
+    document.getElementById('form').onsubmit = e => {
+      e.preventDefault();
+      const input = document.getElementById('input');
+      const text = input.value.trim();
+      if (!text) return;
+      tasks.push({ id: Date.now(), text: text, done: false });
+      input.value = '';
+      save();
+      render();
+    };
+
+    document.querySelectorAll('.filters button').forEach(b => {
+      b.onclick = () => {
+        filter = b.dataset.filter;
+        document.querySelectorAll('.filters button').forEach(x => x.classList.remove('active'));
+        b.classList.add('active');
+        render();
+      };
+    });
+
+    render();
+  </script>
+</body>
+</html>
